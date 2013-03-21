@@ -1,0 +1,213 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2013 .SE (The Internet Infrastructure Foundation)
+# All rights reserved.
+# Written by Patrik Wallström <pawal@iis.se>
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Pod::Usage;
+use POSIX;
+
+# command line options
+my $file;
+my $help;
+my $quiet;
+my $output;
+
+# globals
+my $codepoints = 'allcodepoints.txt';
+my $scriptfile = 'Scripts.txt';
+
+# short codepoints
+my %codes = (
+    1 => 'PVALID', 
+    2 => 'CONTEXTJ', 
+    3 => 'CONTEXTO', 
+    4 => 'UNASSIGNED', 
+    5 => 'DISALLOWED'
+    );
+# reverse lookup table for codepoints
+my %codesrev = reverse %codes;
+
+main();
+
+sub main {
+    GetOptions(
+	'help|?'   => \$help,
+	'file=s'   => \$file,
+	'quiet'    => \$quiet,
+	'output=s' => \$output,
+	) or pod2usage(2);
+
+    # help command line option
+    if ($help or not defined $file) {
+	pod2usage(1);
+	exit;
+    }
+
+    # does the given file exist?
+    die "No file $file" if not -f $file;
+
+    # run the test
+    testIDN();
+}
+
+sub createCodepoints {
+    # Read codepoints file and assign it to hash
+    my %codetable;
+    my $i=0;
+    if (! -f "$codepoints") { die "$codepoints missing" };
+    print "Reading $codepoints\n" if not $quiet;
+    open(IDN, "<$codepoints") or die "Cannot open file $!";
+    while (<IDN>) {
+	my $line = $_;
+	if ($line =~ /^([0-9a-f]{4,});([A-Z]+)/i) {
+	    if (defined $codesrev{$2}) {
+		my $uchar = $1; my $status = $2;
+		$codetable{$uchar}->{'cp'} = $codesrev{$status};
+		$line =~ /.*;(.*)$/;
+		$codetable{$uchar}->{'desc'} = $1;
+		$i++;
+	    } else {
+		print STDERR "ERROR: Unassigned Unicode status code from $codepoints: $2\n";
+	    }
+	}
+    }
+    close IDN;
+
+    # Read script file to gather all Unicode Scripts in hash
+    print "Reading $scriptfile\n" if not $quiet;
+    open (SCRIPT, "<$scriptfile") or die "Cannot open file: $!";
+    while (<SCRIPT>) {
+	next if /^#/ or /^$/; # comment or empty line
+	my $line = $_;
+	$line =~ /\; (.*) #/;
+	my $script = $1;
+	if ($line =~ /^([0-9A-F]+)\.\.([0-9A-F]+)/) { # range of values
+	    my $start = hex($1);
+	    my $end   = hex($2);
+	    # loop through the whole range
+	    for (my $i = $start; $i <= $end; $i++) {
+		my $hex = sprintf("%04X", $i);
+		# add script to hash
+		$codetable{"$hex"}->{'script'} = $script;
+	    }
+	}
+	if ($line =~ /^([0-9A-F]+)/) { # single hit
+	    # add script to hash
+	    $codetable{$1}->{'script'} = $script;
+	}
+    }
+    return \%codetable;
+}
+
+sub createReportTable {
+    my $result = shift;
+
+    # Create new table for the logs
+    my $reportTable;
+    $reportTable = "line: character ; property ; script # description\n";
+    foreach my $uchar (sort keys %{$result}) {
+	$reportTable .= $result->{$uchar}->{'line'}.": $uchar ; "
+                       .$result->{$uchar}->{'status'}." ; "
+	               .$result->{$uchar}->{'script'}." # "
+	               .$result->{$uchar}->{'desc'}."\n";
+    }
+    return $reportTable;
+}
+
+sub createReportSummary {
+    my $result = shift;
+
+    # Create a summary
+    my $fail = 'PASS';
+    my $reportSummary;
+    my %summaryProperty;
+    my %summaryScript;
+    # Summary pt 1, properties
+    foreach my $uchar (sort keys %{$result}) {
+	if ($result->{$uchar}->{'status'} eq 'DISALLOWED' or
+	    $result->{$uchar}->{'status'} eq 'UNASSIGNED') {
+	    $fail = 'FAIL';
+	}
+	$summaryProperty{$result->{$uchar}->{'status'}}++;
+	$summaryScript{$result->{$uchar}->{'script'}}++;
+    }
+    $reportSummary .= "# Summary (properties)\n";
+    foreach my $property (sort keys %summaryProperty) {
+	$reportSummary .= "$property: ".$summaryProperty{$property}."\n";
+    }
+    $reportSummary .= "\n# Summary (scripts)\n";
+    foreach my $script (sort keys %summaryScript) {
+	$reportSummary .= "$script: ".$summaryScript{$script}."\n";
+    }
+
+    return $reportSummary;
+}
+
+sub testIDN {
+    my $codetable = createCodepoints;
+
+    my %result;
+    my $line = 0;
+    my $charmatch = qr/U\+[0-9A-F]+/; # match U+HHHH pattern
+    open(FILE, "<$file") or die "Cannot open file $!";
+    while (<FILE>) {
+	$line++; # line counter
+	next if /^#/;
+	my $string = $_;
+	$string =~ s/#.*//o;        # remove comments from lines
+	my @chars = $string=~ /$charmatch/gx;
+	foreach my $uchar (@chars) {
+	    $uchar =~ /^U\+(.*)/;
+	    $result{$uchar}->{'line'}   = $line;
+	    $result{$uchar}->{'status'} = $codes{$codetable->{$1}->{'cp'}};
+	    $result{$uchar}->{'desc'}   = $codetable->{$1}->{'desc'};
+	    $result{$uchar}->{'script'} = $codetable->{$1}->{'script'};
+	}
+    }
+
+    my $timestamp = POSIX::strftime("%Y-%m-%d %H:%M:%S", localtime);
+    my $header = "# output based on intput file $file\n";
+
+    my $reportTable = createReportTable(\%result);
+    my $reportSummary = createReportSummary(\%result);
+
+    print $reportSummary if not $quiet;
+
+    if (defined $output) {
+	open(TABLE, ">$output") or die "Cannot write $output $!";
+	print TABLE $header;
+	print TABLE $reportTable;
+	close TABLE;
+	
+	print "$output written\n" if not $quiet;
+    }
+}
+
+=head1 NAME
+
+    idn-properties
+
+=head1 DESCRIPTION
+
+This tools runs code point tests for IDN
+
+=head1 USAGE
+
+idn-properties --file idn-table.txt
+
+Mandatory arguments:
+
+  --file            The file with code points to be tested
+
+Optional arguments:
+
+  --help            Show this help screen
+  --quiet           Do not print trace information
+  --output          Wite output to file
+
+=cut
