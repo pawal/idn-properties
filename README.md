@@ -16,13 +16,15 @@ of the derived properties as concluded by the IDNA2008 algorithms.
 
 Example output:
 
+    $> idn-properties --file example-tables/se-yiddish.txt
+    Reading allcodepoints.txt
+    Reading Scripts.txt
     # Summary (properties)
-    PVALID: 19557
+    PVALID: 45
     
     # Summary (scripts)
     Common: 11
-    Han: 19520
-    Latin: 26
+    Hebrew: 34
 
 A complete extended table with the derived and script propertied
 can be output using the --output file option.
