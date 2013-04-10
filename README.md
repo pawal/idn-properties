@@ -26,7 +26,7 @@ Example output:
     Common: 11
     Hebrew: 34
 
-A complete extended table with the derived and script propertied
+A complete extended table with the derived and script properties
 can be output using the --output file option.
 
 Testing based on
