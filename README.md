@@ -46,7 +46,7 @@ http://www.unicode.org/Public/6.2.0/ucd/Scripts.txt
 
 / Patrik Wallström, pawal@iis.se
 
-Thanks for support:
+Thanks for support:  
 Cary Karp  
 Patrik Fältström  
 John Colosi  
