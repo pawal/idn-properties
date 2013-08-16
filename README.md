@@ -22,7 +22,7 @@ Example usage:
     # Properties
       PVALID: 45
     
-    # Sscripts
+    # Scripts
       Common: 11
       Hebrew: 34
 
@@ -47,6 +47,6 @@ http://www.unicode.org/Public/6.2.0/ucd/Scripts.txt
 / Patrik Wallström, pawal@iis.se
 
 Thanks for support:
-Cary Karp
-Patrik Fältström
-John Colosi
+Cary Karp  
+Patrik Fältström  
+John Colosi  
