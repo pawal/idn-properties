@@ -7,27 +7,27 @@ formatted as RFC 4290 tables, RFC 3743, or just any text file
 containing a table of Unicode codepoints in the format of
 U+[A-Z]+.
 
-Output
-------
+Usage
+-----
 
 The output is a summary of scripts being used, and a summary
 of the derived properties as concluded by the IDNA2008 algorithms.
 (PVALID, DISALLOWED and so on.)
 
-Example output:
+Example usage:
 
-    $> idn-properties --file example-tables/se-yiddish.txt
+    $> idn-properties --files example-tables/se-yiddish.txt
     Reading allcodepoints.txt
     Reading Scripts.txt
-    # Summary (properties)
-    PVALID: 45
+    # Properties
+      PVALID: 45
     
-    # Summary (scripts)
-    Common: 11
-    Hebrew: 34
+    # Sscripts
+      Common: 11
+      Hebrew: 34
 
 A complete extended table with the derived and script properties
-can be output using the --output file option.
+can be output using the --reportDir file option.
 
 Testing based on
 ----------------
@@ -45,3 +45,8 @@ The Unicode Script file can be found here:
 http://www.unicode.org/Public/6.2.0/ucd/Scripts.txt
 
 / Patrik Wallström, pawal@iis.se
+
+Thanks for support:
+Cary Karp
+Patrik Fältström
+John Colosi
