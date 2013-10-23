@@ -241,6 +241,7 @@ sub testFile {
 
 idn-properties
 
+
 =head1 DESCRIPTION
 
 This tools runs code point tests for IDN
@@ -251,12 +252,31 @@ idn-properties --files idn-table1.txt idn-table2.txt
 
 Mandatory arguments:
 
---files           One or more files (space separated) with code points to be tested
+=over 4
 
-Optional arguments:
+=item B<--files>
 
---help            Show this help screen
---quiet           Do not print trace information
---reportDir       Write reports into the provided directory
+One or more files (space separated) with code points to be tested
+
+=back
+
+
+=head1 Optional arguments:
+
+=over 4
+
+=item B<--help>
+
+Show this help screen
+
+=item B<--quiet>
+
+Do not print trace information
+
+=item B<--qreportDir>
+
+Write reports into the provided directory
+
+=back
 
 =cut
